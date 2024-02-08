@@ -1,9 +1,7 @@
-use std::ops::{Deref, DerefMut};
-
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
-use flashmind_schema::{FlashCard, FlashCardPackKind};
+use flashmind_schema::FlashCardPackKind;
 
 #[derive(Serialize, Deserialize)]
 pub struct FlashCardPack {
