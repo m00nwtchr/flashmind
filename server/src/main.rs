@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use axum::http::StatusCode;
 use tokio::net::TcpListener;
 
