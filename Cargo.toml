@@ -8,3 +8,5 @@ edition = "2021"
 
 [workspace.dependencies]
 flashmind-schema = { path = "./schema" }
+
+serde = { version = "1" }

@@ -1,7 +1,11 @@
+use axum::routing::{delete, get, post, MethodRouter};
 use axum::Router;
-use axum::routing::get;
-use crate::handler::hello_world;
 
-pub(crate) fn router() -> Router {
-	Router::new().route("/", get(hello_world))
+use crate::db::db;
+use crate::api;
+
+pub async fn app() -> Router {
+	Router::new()
+		.nest("/api/flashcard", api::flashcard())
+		.with_state(db().await)
 }
