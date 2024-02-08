@@ -1,9 +1,9 @@
 use axum::http::StatusCode;
 use tokio::net::TcpListener;
 
+mod api;
 mod app;
 mod db;
-mod api;
 mod schema;
 
 #[tokio::main]

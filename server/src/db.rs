@@ -1,14 +1,13 @@
-use axum::async_trait;
-use axum::extract::{FromRef, FromRequestParts, Path};
-use axum::http::request::Parts;
-use axum::http::StatusCode;
-
-use mongodb::bson::oid::ObjectId;
+use axum::{
+	async_trait,
+	extract::{FromRef, FromRequestParts},
+	http::{request::Parts, StatusCode},
+};
 use mongodb::options::ClientOptions;
 use mongodb::{Client, Collection, Database};
-use flashmind_schema::FlashCard;
 
 use crate::schema::FlashCardPack;
+use flashmind_schema::FlashCard;
 
 pub async fn db() -> Database {
 	let db_connection_str = std::env::var("DATABASE_URL").unwrap_or_else(|_| {

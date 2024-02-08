@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 pub mod lang;
 use crate::lang::Language;
@@ -44,7 +44,7 @@ pub struct FlashCard {
 #[derive(Serialize, Deserialize)]
 pub enum FlashCardPackKind {
 	Language,
-	Other
+	Other,
 }
 
 #[derive(Serialize, Deserialize)]

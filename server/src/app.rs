@@ -1,8 +1,7 @@
-use axum::routing::{delete, get, post, MethodRouter};
 use axum::Router;
 
-use crate::db::db;
 use crate::api;
+use crate::db::db;
 
 pub async fn app() -> Router {
 	Router::new()
