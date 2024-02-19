@@ -1,15 +1,24 @@
 version: "3.8"
 
 services:
-  db:
-    image: mongo:latest
+  mariadb:
+    image: mariadb:latest
     ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
+      - "3306:3306"
     volumes:
-      - "db:/data/db"
+      - mariadb-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: qwerty
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    ports:
+      - 8000:80
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mariadb
+    depends_on:
+      - mariadb
 
 volumes:
-  db:
+  mariadb-data:

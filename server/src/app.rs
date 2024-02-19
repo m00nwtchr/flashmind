@@ -38,7 +38,7 @@ pub async fn app(config: AppConfig) -> Router {
 
 	Router::new()
 		.nest("/api/flashcard", route::api::flashcard())
-		.with_state(db().await)
+		.with_state(db(&config).await)
 		.nest("/auth", route::auth())
 		.with_state(state)
 		.layer(SessionLayer::new(session_store))

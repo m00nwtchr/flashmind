@@ -9,9 +9,10 @@ use crate::config::AppConfig;
 mod app;
 mod config;
 mod db;
+mod dto;
+mod entities;
 mod oidc;
 mod route;
-mod schema;
 mod session;
 
 #[tokio::main]

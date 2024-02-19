@@ -1,5 +1,5 @@
 [workspace]
-members = [ "schema","server"]
+members = ["server"]
 resolver = "2"
 
 [workspace.package]
@@ -7,6 +7,5 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
-flashmind-schema = { path = "./schema" }
 
 serde = { version = "1" }

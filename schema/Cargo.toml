@@ -1,9 +1,0 @@
-[package]
-name = "flashmind-schema"
-version.workspace = true
-edition.workspace = true
-publish = false
-
-[dependencies]
-serde = { workspace = true, features = ["derive"]}
-bson = "2.9"
