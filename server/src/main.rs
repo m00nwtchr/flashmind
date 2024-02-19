@@ -1,18 +1,27 @@
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+
 use axum::http::StatusCode;
 use tokio::net::TcpListener;
 
-mod api;
+use crate::config::AppConfig;
+
 mod app;
+mod config;
 mod db;
+mod oidc;
+mod route;
 mod schema;
+mod session;
 
 #[tokio::main]
 async fn main() {
 	tracing_subscriber::fmt::init();
 
-	let listener = TcpListener::bind("[::1]:3000").await.unwrap();
-	axum::serve(listener, app::app().await).await.unwrap();
+	let config = AppConfig::from_env();
+
+	let listener = TcpListener::bind(&config.listen_addr).await.unwrap();
+	axum::serve(listener, app::app(config).await).await.unwrap();
 }
 
 fn internal_error<E>(err: E) -> (StatusCode, String)

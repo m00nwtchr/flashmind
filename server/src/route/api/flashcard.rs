@@ -13,7 +13,7 @@ use mongodb::{
 use crate::{db::FlashCardCollection, internal_error};
 use flashmind_schema::FlashCard;
 
-pub async fn create(
+async fn create(
 	FlashCardCollection(collection): FlashCardCollection,
 	Json(mut flashcard): Json<FlashCard>,
 ) -> Result<(StatusCode, HeaderMap, Json<FlashCard>), (StatusCode, String)> {
@@ -35,7 +35,7 @@ pub async fn create(
 	Ok((StatusCode::CREATED, headers, flashcard.into()))
 }
 
-pub async fn all(
+async fn all(
 	FlashCardCollection(collection): FlashCardCollection,
 ) -> Result<Json<Vec<FlashCard>>, (StatusCode, String)> {
 	let vec: Vec<FlashCard> = collection
@@ -49,7 +49,7 @@ pub async fn all(
 	Ok(vec.into())
 }
 
-pub async fn get_one(
+async fn get_one(
 	FlashCardCollection(collection): FlashCardCollection,
 	Path(id): Path<ObjectId>,
 ) -> Result<Json<FlashCard>, (StatusCode, String)> {
@@ -61,7 +61,7 @@ pub async fn get_one(
 		.map(Into::into)
 }
 
-pub async fn update(
+async fn update(
 	FlashCardCollection(collection): FlashCardCollection,
 	Path(id): Path<ObjectId>,
 	Json(mut flashcard): Json<FlashCard>,
@@ -75,7 +75,7 @@ pub async fn update(
 	Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn del(
+async fn del(
 	FlashCardCollection(collection): FlashCardCollection,
 	Path(id): Path<ObjectId>,
 ) -> Result<StatusCode, (StatusCode, String)> {
