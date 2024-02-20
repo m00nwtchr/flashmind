@@ -12,7 +12,6 @@ use openidconnect::{
 	core::CoreResponseType, reqwest::async_http_client, AuthenticationFlow, AuthorizationCode,
 	CsrfToken, Nonce, RequestTokenError, Scope, TokenResponse,
 };
-use sea_orm::ActiveValue::Set;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter};
 use serde::Deserialize;
 
@@ -114,28 +113,35 @@ async fn provider_callback(
 			};
 
 			// Create new user
-			u.user_id = entity::User::insert(user::ActiveModel {
-				sub: Set(u.subject_id.clone()),
-				provider: Set(u.provider.clone()),
-				email: Set(u.email.clone()),
-				display: Set(u.display.clone()),
-				..Default::default()
-			})
-			.exec(&db)
-			.await
-			.map_err(internal_error)?
-			.last_insert_id;
+			u.user_id = entity::User::insert(user::ActiveModel::from(u.clone()))
+				.exec(&db)
+				.await
+				.map_err(internal_error)?
+				.last_insert_id;
 
 			u
 		}
-		Some(user) => CurrentUser {
-			user_id: user.id,
-			subject_id: user.sub,
-			provider: user.provider,
-			username: None,
-			display: user.display,
-			email: user.email,
-		},
+		Some(model) => {
+			let user = CurrentUser {
+				user_id: model.id,
+				subject_id: model.sub,
+				provider,
+				username: claims.preferred_username().map(|c| c.to_string()),
+				display: claims
+					.name()
+					.and_then(|c| c.get(None))
+					.map(|c| c.to_string()),
+				email: claims.email().map(|c| c.to_string()),
+			};
+
+			// TODO: Consider updating user data on subsequent login
+			// entity::User::update(user.update_model(model.into_active_model()))
+			// 	.exec(&db)
+			// 	.await
+			// 	.map_err(internal_error)?;
+
+			user
+		}
 	};
 
 	session.set(CURRENT_USER, user);

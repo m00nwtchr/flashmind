@@ -3,7 +3,10 @@ use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
 use axum_session::SessionNullPool;
+use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
+
+use crate::entities::user;
 
 pub const OIDC_CSRF_TOKEN: &str = "oidc_csrf_token";
 pub const OIDC_NONCE: &str = "oidc_nonce";
@@ -20,6 +23,27 @@ pub struct CurrentUser {
 	pub username: Option<String>,
 	pub display: Option<String>,
 	pub email: Option<String>,
+}
+
+impl CurrentUser {
+	pub fn update_model(&self, mut model: user::ActiveModel) -> user::ActiveModel {
+		model.email = ActiveValue::Set(self.email.clone());
+		model.display = ActiveValue::Set(self.display.clone());
+		model
+	}
+}
+
+impl From<CurrentUser> for user::ActiveModel {
+	fn from(value: CurrentUser) -> Self {
+		Self {
+			id: ActiveValue::NotSet,
+			sub: ActiveValue::Unchanged(value.subject_id),
+			provider: ActiveValue::Unchanged(value.provider),
+			// username: ActiveValue::Set(value.username),
+			display: ActiveValue::Set(value.display),
+			email: ActiveValue::Set(value.email),
+		}
+	}
 }
 
 pub(crate) async fn auth(
