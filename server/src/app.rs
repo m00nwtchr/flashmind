@@ -1,5 +1,6 @@
 use axum::extract::FromRef;
-use axum::Router;
+use axum::routing::get;
+use axum::{middleware, Router};
 use axum_session::{Key, SessionConfig, SessionLayer, SessionNullPool, SessionStore};
 use sea_orm::DatabaseConnection;
 use std::ops::Deref;
@@ -8,7 +9,7 @@ use std::sync::Arc;
 use crate::config::AppConfig;
 use crate::db::db;
 use crate::oidc::OIDCProviders;
-use crate::{oidc, route};
+use crate::{oidc, route, session};
 
 pub struct AppStateInner {
 	pub providers: OIDCProviders,
@@ -50,6 +51,7 @@ pub async fn app(config: AppConfig) -> Router {
 	Router::new()
 		.nest("/api/flashcard", route::api::flashcard())
 		.nest("/auth", route::auth())
+		.route("/", get(|| async { "Hello World!".to_string() }))
 		.with_state(state)
 		.layer(SessionLayer::new(session_store))
 }

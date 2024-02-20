@@ -2,24 +2,28 @@ use crate::app::AppState;
 use crate::dto::flashcard::FlashCard;
 use crate::entities::flash_card;
 use crate::entities::prelude as entity;
-use crate::internal_error;
+use crate::entities::sea_orm_active_enums::Share;
+use crate::session::CurrentUser;
+use crate::{internal_error, session};
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::{
 	extract::Path,
 	http::{header::LOCATION, StatusCode},
+	middleware,
 	routing::{delete, get, post, put},
-	Json, Router,
+	Extension, Json, Router,
 };
 use futures::stream::TryStreamExt;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
 async fn create(
 	State(conn): State<DatabaseConnection>,
+	Extension(user): Extension<CurrentUser>,
 	Json(mut body): Json<FlashCard>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let flashcard = flash_card::ActiveModel {
-		creator: ActiveValue::Set(0),
+		creator: ActiveValue::Set(user.user_id),
 		share: ActiveValue::Set(body.share.clone()),
 		content: ActiveValue::Set(serde_json::to_string(&body.content).map_err(internal_error)?),
 		..Default::default()
@@ -47,6 +51,7 @@ async fn create(
 //
 async fn get_one(
 	State(db): State<DatabaseConnection>,
+	Extension(user): Extension<CurrentUser>,
 	Path(id): Path<u32>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let flashcard = entity::FlashCard::find_by_id(id)
@@ -55,15 +60,29 @@ async fn get_one(
 		.map_err(internal_error)?
 		.ok_or_else(|| (StatusCode::NOT_FOUND, "Not found".to_string()))?;
 
-	Ok(Json(FlashCard {
-		id: Some(flashcard.id),
-		share: flashcard.share,
-		content: serde_json::from_str(&flashcard.content).map_err(internal_error)?,
-	}))
+	match flashcard.share {
+		Share::Protected | Share::Public => Ok(Json(FlashCard {
+			id: Some(flashcard.id),
+			share: flashcard.share,
+			content: serde_json::from_str(&flashcard.content).map_err(internal_error)?,
+		})),
+		Share::Private => {
+			if user.user_id == flashcard.creator {
+				Ok(Json(FlashCard {
+					id: Some(flashcard.id),
+					share: flashcard.share,
+					content: serde_json::from_str(&flashcard.content).map_err(internal_error)?,
+				}))
+			} else {
+				Err((StatusCode::NOT_FOUND, "Not found".to_string()))
+			}
+		}
+	}
 }
 
 async fn update(
 	State(conn): State<DatabaseConnection>,
+	Extension(user): Extension<CurrentUser>,
 	Path(id): Path<u32>,
 	Json(body): Json<FlashCard>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -75,18 +94,28 @@ async fn update(
 	};
 
 	entity::FlashCard::update(flashcard)
+		.filter(flash_card::Column::Creator.eq(user.user_id))
 		.exec(&conn)
 		.await
 		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
-//
-// async fn del(
-// 	State(db): State<DatabaseConnection>,
-// 	Path(id): Path<String>,
-// ) -> Result<StatusCode, (StatusCode, String)> {
-// 	Ok(StatusCode::NO_CONTENT)
-// }
+
+async fn del(
+	State(conn): State<DatabaseConnection>,
+	Extension(user): Extension<CurrentUser>,
+	Path(id): Path<u32>,
+) -> Result<StatusCode, (StatusCode, String)> {
+	entity::FlashCard::delete(flash_card::ActiveModel {
+		id: ActiveValue::Set(id),
+		..Default::default()
+	})
+	.filter(flash_card::Column::Creator.eq(user.user_id))
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?;
+	Ok(StatusCode::NO_CONTENT)
+}
 
 pub fn router() -> Router<AppState> {
 	Router::new()
@@ -94,5 +123,6 @@ pub fn router() -> Router<AppState> {
 		// .route("/", get(all))
 		.route("/:id", get(get_one))
 		.route("/:id", put(update))
-	// .route("/:id", delete(del))
+		.route("/:id", delete(del))
+		.route_layer(middleware::from_fn(session::auth))
 }
