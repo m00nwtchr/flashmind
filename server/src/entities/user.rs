@@ -7,39 +7,34 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
 	#[sea_orm(primary_key)]
 	pub id: u32,
+	pub sub: String,
 	#[sea_orm(column_type = "Text")]
-	pub display: String,
-	#[sea_orm(column_type = "Text")]
-	pub email: String,
+	pub provider: String,
+	#[sea_orm(column_type = "Text", nullable)]
+	pub display: Option<String>,
+	#[sea_orm(column_type = "Text", nullable)]
+	pub email: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
 	#[sea_orm(has_many = "super::deck::Entity")]
 	Deck,
-	#[sea_orm(has_many = "super::flashcard::Entity")]
-	Flashcard,
+	#[sea_orm(has_many = "super::flash_card::Entity")]
+	FlashCard,
 	#[sea_orm(has_many = "super::followed_decks::Entity")]
 	FollowedDecks,
-	#[sea_orm(has_many = "super::subject_id::Entity")]
-	SubjectId,
 }
 
-impl Related<super::flashcard::Entity> for Entity {
+impl Related<super::flash_card::Entity> for Entity {
 	fn to() -> RelationDef {
-		Relation::Flashcard.def()
+		Relation::FlashCard.def()
 	}
 }
 
 impl Related<super::followed_decks::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::FollowedDecks.def()
-	}
-}
-
-impl Related<super::subject_id::Entity> for Entity {
-	fn to() -> RelationDef {
-		Relation::SubjectId.def()
 	}
 }
 

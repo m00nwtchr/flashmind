@@ -1,6 +1,6 @@
 use crate::app::AppState;
 use crate::dto::flashcard::FlashCard;
-use crate::entities::flashcard;
+use crate::entities::flash_card;
 use crate::entities::prelude as entity;
 use crate::internal_error;
 use axum::extract::State;
@@ -18,7 +18,7 @@ async fn create(
 	State(conn): State<DatabaseConnection>,
 	Json(mut body): Json<FlashCard>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let flashcard = flashcard::ActiveModel {
+	let flashcard = flash_card::ActiveModel {
 		creator: ActiveValue::Set(0),
 		share: ActiveValue::Set(body.share.clone()),
 		content: ActiveValue::Set(serde_json::to_string(&body.content).map_err(internal_error)?),
@@ -67,7 +67,7 @@ async fn update(
 	Path(id): Path<u32>,
 	Json(body): Json<FlashCard>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let flashcard = flashcard::ActiveModel {
+	let flashcard = flash_card::ActiveModel {
 		id: ActiveValue::Set(id),
 		share: ActiveValue::Set(body.share.clone()),
 		content: ActiveValue::Set(serde_json::to_string(&body.content).map_err(internal_error)?),
@@ -88,7 +88,7 @@ async fn update(
 // 	Ok(StatusCode::NO_CONTENT)
 // }
 
-pub fn router() -> Router<DatabaseConnection> {
+pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/", post(create))
 		// .route("/", get(all))

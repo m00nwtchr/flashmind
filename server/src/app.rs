@@ -1,5 +1,7 @@
+use axum::extract::FromRef;
 use axum::Router;
 use axum_session::{Key, SessionConfig, SessionLayer, SessionNullPool, SessionStore};
+use sea_orm::DatabaseConnection;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -10,6 +12,7 @@ use crate::{oidc, route};
 
 pub struct AppStateInner {
 	pub providers: OIDCProviders,
+	pub db: DatabaseConnection,
 }
 
 #[derive(Clone)]
@@ -24,9 +27,17 @@ impl Deref for AppState {
 	}
 }
 
+impl FromRef<AppState> for DatabaseConnection {
+	fn from_ref(input: &AppState) -> Self {
+		input.db.clone()
+	}
+}
+
 pub async fn app(config: AppConfig) -> Router {
 	let providers = oidc::get_oidc_providers(format!("{}/auth/oidc", config.public_url)).await;
-	let state = AppState(Arc::new(AppStateInner { providers }));
+	let db = db(&config).await;
+
+	let state = AppState(Arc::new(AppStateInner { providers, db }));
 
 	let session_config = SessionConfig::default()
 		.with_key(Key::generate())
@@ -38,7 +49,6 @@ pub async fn app(config: AppConfig) -> Router {
 
 	Router::new()
 		.nest("/api/flashcard", route::api::flashcard())
-		.with_state(db(&config).await)
 		.nest("/auth", route::auth())
 		.with_state(state)
 		.layer(SessionLayer::new(session_store))

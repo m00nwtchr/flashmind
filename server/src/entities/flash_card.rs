@@ -4,7 +4,7 @@ use super::sea_orm_active_enums::Share;
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "flashcard")]
+#[sea_orm(table_name = "flash_card")]
 pub struct Model {
 	#[sea_orm(primary_key)]
 	pub id: u32,
