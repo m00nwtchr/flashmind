@@ -1,23 +1,26 @@
-use axum::extract::State;
-use axum::routing::post;
 use axum::{
-	extract::Query,
+	extract::{Query, State},
 	http::{header::LOCATION, StatusCode},
 	middleware,
 	response::IntoResponse,
-	routing::get,
+	routing::{get, post},
 	Extension, Json, Router,
 };
 use openidconnect::{
 	core::CoreResponseType, reqwest::async_http_client, AuthenticationFlow, AuthorizationCode,
 	CsrfToken, Nonce, RequestTokenError, Scope, TokenResponse,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::Deserialize;
 
-use crate::entities::{prelude as entity, user};
-use crate::session::{CurrentUser, Session, CURRENT_USER, OIDC_NONCE};
-use crate::{app::AppState, internal_error, oidc::OIDCProvider, session, session::OIDC_CSRF_TOKEN};
+use crate::{
+	app::AppState,
+	entities::{prelude as entity, user},
+	internal_error,
+	oidc::OIDCProvider,
+	session,
+	session::{CurrentUser, Session, CURRENT_USER, OIDC_CSRF_TOKEN, OIDC_NONCE},
+};
 
 #[derive(Debug, Deserialize)]
 pub struct AuthRequest {

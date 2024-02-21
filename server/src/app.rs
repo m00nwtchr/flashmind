@@ -1,15 +1,10 @@
-use axum::extract::FromRef;
-use axum::routing::get;
-use axum::{middleware, Router};
+use std::{ops::Deref, sync::Arc};
+
+use axum::{extract::FromRef, routing::get, Router};
 use axum_session::{Key, SessionConfig, SessionLayer, SessionNullPool, SessionStore};
 use sea_orm::DatabaseConnection;
-use std::ops::Deref;
-use std::sync::Arc;
 
-use crate::config::AppConfig;
-use crate::db::db;
-use crate::oidc::OIDCProviders;
-use crate::{oidc, route, session};
+use crate::{config::AppConfig, db::db, oidc, oidc::OIDCProviders, route};
 
 pub struct AppStateInner {
 	pub providers: OIDCProviders,

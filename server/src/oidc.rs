@@ -1,14 +1,18 @@
-use crate::app::AppState;
-use axum::async_trait;
-use axum::extract::{FromRef, FromRequestParts, Path};
-use axum::http::request::Parts;
-use axum::http::StatusCode;
+use std::{collections::HashMap, ops::Deref};
+
+use axum::{
+	async_trait,
+	extract::{FromRef, FromRequestParts, Path},
+	http::{request::Parts, StatusCode},
+};
 use futures::stream::StreamExt;
-use openidconnect::core::{CoreClient, CoreProviderMetadata};
-use openidconnect::reqwest::async_http_client;
-use openidconnect::{ClientId, ClientSecret, IssuerUrl, RedirectUrl};
-use std::collections::HashMap;
-use std::ops::Deref;
+use openidconnect::{
+	core::{CoreClient, CoreProviderMetadata},
+	reqwest::async_http_client,
+	ClientId, ClientSecret, IssuerUrl, RedirectUrl,
+};
+
+use crate::app::AppState;
 
 #[derive(Clone)]
 pub struct OIDCProviders(HashMap<String, CoreClient>);
