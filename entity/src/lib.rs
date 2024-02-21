@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod custom;
 pub mod deck;
 pub mod deck_cards;
 pub mod flash_card;

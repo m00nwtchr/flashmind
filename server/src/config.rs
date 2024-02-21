@@ -7,12 +7,22 @@ pub struct AppConfig {
 
 impl AppConfig {
 	pub fn from_env() -> Self {
-		AppConfig {
+		Self {
 			public_url: std::env::var("FLASHMIND_PUBLIC_URL")
 				.unwrap_or(String::from("http://localhost:3000")),
 			listen_addr: std::env::var("FLASHMIND_LISTEN_ADDR")
 				.unwrap_or(String::from("[::]:3000")),
 			db_url: std::env::var("FLASHMIND_DB_URL").expect("You must provide a database url."),
+		}
+	}
+}
+
+impl Default for AppConfig {
+	fn default() -> Self {
+		Self {
+			public_url: String::from("http://localhost:3000"),
+			listen_addr: String::from("[::]:3000"),
+			db_url: String::from("sqlite::memory:"),
 		}
 	}
 }

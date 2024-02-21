@@ -4,7 +4,7 @@ use super::sea_orm_active_enums::Share;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::data::flash_card::FlashCardContent;
+use crate::custom::flash_card::FlashCardContent;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "flash_card")]

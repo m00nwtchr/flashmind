@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use sea_orm::FromJsonQueryResult;
 use serde::{Deserialize, Serialize};
 
-use crate::data::lang::Language;
+use crate::custom::lang::Language;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]

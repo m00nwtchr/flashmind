@@ -2,6 +2,7 @@ use std::{ops::Deref, sync::Arc};
 
 use axum::{extract::FromRef, routing::get, Router};
 use axum_session::{Key, SessionConfig, SessionLayer, SessionNullPool, SessionStore};
+use migration::MigratorTrait;
 use sea_orm::DatabaseConnection;
 
 use crate::{config::AppConfig, db::db, oidc, oidc::OIDCProviders, route};
@@ -33,6 +34,10 @@ pub async fn app(config: AppConfig) -> Router {
 	let providers = oidc::get_oidc_providers(format!("{}/auth/oidc", config.public_url)).await;
 	let db = db(&config).await;
 
+	migration::Migrator::up(&db, None)
+		.await
+		.expect("Migration failed");
+
 	let state = AppState(Arc::new(AppStateInner { providers, db }));
 
 	let session_config = SessionConfig::default()
@@ -47,7 +52,7 @@ pub async fn app(config: AppConfig) -> Router {
 		.nest("/api/flashcard", route::api::flashcard())
 		.nest("/api/deck", route::api::deck())
 		.nest("/auth", route::auth())
-		.route("/", get(|| async { "Hello World!".to_string() }))
+		.route("/", get(|| async { "Hello, World!".to_string() }))
 		.with_state(state)
 		.layer(SessionLayer::new(session_store))
 }

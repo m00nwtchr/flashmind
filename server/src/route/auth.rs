@@ -10,17 +10,17 @@ use openidconnect::{
 	core::CoreResponseType, reqwest::async_http_client, AuthenticationFlow, AuthorizationCode,
 	CsrfToken, Nonce, RequestTokenError, Scope, TokenResponse,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::Deserialize;
 
 use crate::{
 	app::AppState,
-	entities::{prelude as entity, user},
 	internal_error,
 	oidc::OIDCProvider,
 	session,
 	session::{CurrentUser, Session, CURRENT_USER, OIDC_CSRF_TOKEN, OIDC_NONCE},
 };
+use entity::{prelude::*, user};
 
 #[derive(Debug, Deserialize)]
 pub struct AuthRequest {
@@ -86,7 +86,7 @@ async fn provider_callback(
 		.unwrap();
 	let sub = claims.subject();
 
-	let res = entity::User::find()
+	let res = User::find()
 		.filter(user::Column::Sub.eq(sub.as_str()))
 		.filter(user::Column::Provider.eq(&provider))
 		.one(&db)
@@ -108,11 +108,17 @@ async fn provider_callback(
 			};
 
 			// Create new user
-			u.user_id = entity::User::insert(user::ActiveModel::from(u.clone()))
-				.exec(&db)
-				.await
-				.map_err(internal_error)?
-				.last_insert_id;
+			u.user_id = User::insert(user::ActiveModel {
+				sub: Set(sub.to_string()),
+				provider: Set(u.provider.clone()),
+				display: Set(u.display.clone()),
+				email: Set(u.display.clone()),
+				..Default::default()
+			})
+			.exec(&db)
+			.await
+			.map_err(internal_error)?
+			.last_insert_id;
 
 			u
 		}

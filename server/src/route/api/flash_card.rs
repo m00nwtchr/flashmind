@@ -8,19 +8,15 @@ use axum::{
 };
 use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
-use crate::{
-	app::AppState,
-	entities::{flash_card, prelude as entity, sea_orm_active_enums::Share},
-	internal_error, session,
-	session::CurrentUser,
-};
+use crate::{app::AppState, internal_error, session, session::CurrentUser};
+use entity::{flash_card, prelude::*, sea_orm_active_enums::Share};
 
 async fn create(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
 	Json(mut body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let res = entity::FlashCard::insert(flash_card::ActiveModel {
+	let res = FlashCard::insert(flash_card::ActiveModel {
 		creator: ActiveValue::Set(user.user_id),
 		share: ActiveValue::Set(body.share.clone()),
 		content: ActiveValue::Set(body.content.clone()),
@@ -50,7 +46,7 @@ async fn get_one(
 	Extension(user): Extension<CurrentUser>,
 	Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let flashcard = entity::FlashCard::find_by_id(id)
+	let flashcard = FlashCard::find_by_id(id)
 		.one(&db)
 		.await
 		.map_err(internal_error)?
@@ -81,7 +77,7 @@ async fn update(
 		..Default::default()
 	};
 
-	entity::FlashCard::update(flashcard)
+	FlashCard::update(flashcard)
 		.filter(flash_card::Column::Creator.eq(user.user_id))
 		.exec(&conn)
 		.await
@@ -94,7 +90,7 @@ async fn del(
 	Extension(user): Extension<CurrentUser>,
 	Path(uid): Path<String>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-	entity::FlashCard::delete(flash_card::ActiveModel {
+	FlashCard::delete(flash_card::ActiveModel {
 		uid: ActiveValue::Set(uid),
 		..Default::default()
 	})
