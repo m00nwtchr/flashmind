@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 
 use axum::{
 	async_trait,
@@ -11,14 +11,15 @@ use openidconnect::{
 	reqwest::async_http_client,
 	ClientId, ClientSecret, IssuerUrl, RedirectUrl,
 };
+use rustc_hash::FxHashMap;
 
 use crate::app::AppState;
 
 #[derive(Clone)]
-pub struct OIDCProviders(HashMap<String, CoreClient>);
+pub struct OIDCProviders(FxHashMap<String, CoreClient>);
 
 impl Deref for OIDCProviders {
-	type Target = HashMap<String, CoreClient>;
+	type Target = FxHashMap<String, CoreClient>;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
@@ -51,7 +52,7 @@ where
 }
 
 pub async fn get_oidc_providers(base_url: String) -> OIDCProviders {
-	let mut providers = HashMap::new();
+	let mut providers = FxHashMap::default();
 	for (key, value) in std::env::vars() {
 		if let Some(provider_name) = extract_provider_name(&key) {
 			let (client_id, client_secret, issuer_url) = providers

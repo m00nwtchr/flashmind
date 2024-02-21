@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use sea_orm::FromJsonQueryResult;
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ pub enum FlashCardSection {
 		back: FlashCardItem,
 	},
 	#[serde(untagged)]
-	Lang(HashMap<Language, FlashCardItem>),
+	Lang(FxHashMap<Language, FlashCardItem>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
