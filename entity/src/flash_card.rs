@@ -15,6 +15,7 @@ pub struct Model {
 	)]
 	#[serde(skip_deserializing)]
 	pub uid: uuid::Uuid,
+	#[serde(skip_deserializing)]
 	pub creator: u32,
 	pub share: Share,
 	#[sea_orm(column_type = "custom(\"LONGTEXT\")")]

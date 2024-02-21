@@ -20,16 +20,18 @@ async fn create(
 	Json(mut deck): Json<deck::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	deck.uid = Uuid::new_v4();
+	deck.creator = user.user_id;
+
 	Deck::insert(deck::ActiveModel {
 		uid: Set(deck.uid),
 		name: Set(deck.name.clone()),
-		creator: Set(user.user_id),
+		creator: Set(deck.creator),
 		kind: Set(deck.kind),
 		share: Set(deck.share),
 	})
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 
 	Ok((
 		StatusCode::CREATED,
@@ -93,9 +95,9 @@ async fn update(
 		kind: Set(body.kind),
 		share: Set(body.share),
 	})
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
@@ -113,9 +115,9 @@ async fn get_cards(
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
-	else {
-		return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
-	};
+		else {
+			return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
+		};
 
 	let cards = deck
 		.find_related(FlashCard)
@@ -141,10 +143,10 @@ async fn delete_deck(
 		uid: Set(uid),
 		..Default::default()
 	})
-	.filter(flash_card::Column::Creator.eq(user.user_id))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.filter(flash_card::Column::Creator.eq(user.user_id))
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
@@ -159,9 +161,9 @@ async fn update_cards(
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
-	else {
-		return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
-	};
+		else {
+			return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
+		};
 
 	DeckCards::delete_many()
 		.filter(deck_cards::Column::Deck.eq(deck.uid))
@@ -173,9 +175,9 @@ async fn update_cards(
 		card: Set(id),
 		deck: Set(deck.uid),
 	}))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 

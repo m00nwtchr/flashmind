@@ -18,9 +18,11 @@ async fn create(
 	Json(mut body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	body.uid = Uuid::new_v4();
+	body.creator = user.user_id;
+
 	FlashCard::insert(flash_card::ActiveModel {
 		uid: Set(body.uid),
-		creator: Set(user.user_id),
+		creator: Set(body.creator),
 		share: Set(body.share),
 		content: Set(body.content.clone()),
 	})

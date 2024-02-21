@@ -15,5 +15,9 @@ sea-orm-cli generate entity													\
 
 echo "pub mod custom;" >> "$SRC/lib.rs"
 
-sed "s/: Vec<u8>,/: uuid::Uuid,/" -i "$SRC/"*.rs
+sed -e "s/: Vec<u8>,/: uuid::Uuid,/" \
+	-e "s/pub creator: u32,/#[serde(skip_deserializing)]\n\tpub creator: u32,/" \
+	-i "$SRC/"*.rs
 sed "s/pub content: String,/pub content: super::custom::flash_card::FlashCardContent,/" -i "$SRC/flash_card.rs"
+
+cargo +nightly fmt
