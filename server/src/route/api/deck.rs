@@ -7,9 +7,9 @@ use axum::{
 	Extension, Json, Router,
 };
 use sea_orm::{
-	ActiveValue, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait,
-	QueryFilter,
+	ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
 };
+use uuid::Uuid;
 
 use crate::{app::AppState, internal_error, session, session::CurrentUser};
 use entity::{deck, deck_cards, flash_card, prelude::*, sea_orm_active_enums::Share};
@@ -19,21 +19,21 @@ async fn create(
 	Extension(user): Extension<CurrentUser>,
 	Json(mut deck): Json<deck::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let res = Deck::insert(deck::ActiveModel {
+	deck.uid = Uuid::new_v4();
+	Deck::insert(deck::ActiveModel {
+		uid: Set(deck.uid),
 		name: Set(deck.name.clone()),
 		creator: Set(user.user_id),
-		kind: Set(deck.kind.clone()),
-		share: Set(deck.share.clone()),
-		..Default::default()
+		kind: Set(deck.kind),
+		share: Set(deck.share),
 	})
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
-	deck.uid = res.last_insert_id.clone();
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 
 	Ok((
 		StatusCode::CREATED,
-		[(LOCATION, res.last_insert_id)],
+		[(LOCATION, deck.uid.to_string())],
 		Json(deck),
 	))
 }
@@ -47,7 +47,7 @@ async fn create(
 async fn get_one(
 	State(db): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(id): Path<String>,
+	Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let deck = Deck::find_by_id(id)
 		.filter(
@@ -75,7 +75,7 @@ async fn get_one(
 async fn update(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(uid): Path<String>,
+	Path(uid): Path<Uuid>,
 	Json(body): Json<deck::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let deck: deck::ActiveModel = Deck::find_by_id(uid)
@@ -93,16 +93,16 @@ async fn update(
 		kind: Set(body.kind),
 		share: Set(body.share),
 	})
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
 async fn get_cards(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(uid): Path<String>,
+	Path(uid): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let Some(deck) = Deck::find_by_id(uid)
 		.filter(
@@ -113,9 +113,9 @@ async fn get_cards(
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
-	else {
-		return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
-	};
+		else {
+			return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
+		};
 
 	let cards = deck
 		.find_related(FlashCard)
@@ -135,47 +135,47 @@ async fn get_cards(
 async fn delete_deck(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(uid): Path<String>,
+	Path(uid): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
 	Deck::delete(deck::ActiveModel {
-		uid: ActiveValue::Set(uid),
+		uid: Set(uid),
 		..Default::default()
 	})
-	.filter(flash_card::Column::Creator.eq(user.user_id))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.filter(flash_card::Column::Creator.eq(user.user_id))
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
 async fn update_cards(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(uid): Path<String>,
-	Json(ids): Json<Vec<String>>,
+	Path(uid): Path<Uuid>,
+	Json(ids): Json<Vec<Uuid>>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let Some(deck) = Deck::find_by_id(uid)
 		.filter(deck::Column::Creator.eq(user.user_id))
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
-	else {
-		return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
-	};
+		else {
+			return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
+		};
 
 	DeckCards::delete_many()
-		.filter(deck_cards::Column::Deck.eq(&deck.uid))
+		.filter(deck_cards::Column::Deck.eq(deck.uid))
 		.exec(&conn)
 		.await
 		.map_err(internal_error)?;
 
 	DeckCards::insert_many(ids.into_iter().map(|id| deck_cards::ActiveModel {
 		card: Set(id),
-		deck: Set(deck.uid.clone()),
+		deck: Set(deck.uid),
 	}))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
