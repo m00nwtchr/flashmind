@@ -8,8 +8,8 @@ use crate::config::AppConfig;
 
 mod app;
 mod config;
+mod data;
 mod db;
-mod dto;
 mod entities;
 mod oidc;
 mod route;
@@ -23,6 +23,13 @@ async fn main() {
 
 	let listener = TcpListener::bind(&config.listen_addr).await.unwrap();
 	axum::serve(listener, app::app(config).await).await.unwrap();
+}
+
+fn status_code<E>(status_code: StatusCode) -> impl FnOnce(E) -> (StatusCode, String)
+where
+	E: std::error::Error,
+{
+	move |err| (status_code, err.to_string())
 }
 
 fn internal_error<E>(err: E) -> (StatusCode, String)

@@ -18,21 +18,19 @@ use crate::{
 async fn create(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Json(mut body): Json<FlashCard>,
+	Json(mut body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let flashcard = flash_card::ActiveModel {
+	let res = entity::FlashCard::insert(flash_card::ActiveModel {
 		creator: ActiveValue::Set(user.user_id),
 		share: ActiveValue::Set(body.share.clone()),
-		content: ActiveValue::Set(serde_json::to_string(&body.content).map_err(internal_error)?),
+		content: ActiveValue::Set(body.content.clone()),
 		..Default::default()
-	};
+	})
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?;
 
-	let res = entity::FlashCard::insert(flashcard)
-		.exec(&conn)
-		.await
-		.map_err(internal_error)?;
-
-	body.id = Some(res.last_insert_id);
+	body.uid = res.last_insert_id.clone();
 
 	Ok((
 		StatusCode::CREATED,
@@ -50,7 +48,7 @@ async fn create(
 async fn get_one(
 	State(db): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(id): Path<u32>,
+	Path(id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let flashcard = entity::FlashCard::find_by_id(id)
 		.one(&db)
@@ -59,18 +57,10 @@ async fn get_one(
 		.ok_or_else(|| (StatusCode::NOT_FOUND, "Not found".to_string()))?;
 
 	match flashcard.share {
-		Share::Protected | Share::Public => Ok(Json(FlashCard {
-			id: Some(flashcard.id),
-			share: flashcard.share,
-			content: serde_json::from_str(&flashcard.content).map_err(internal_error)?,
-		})),
+		Share::Public => Ok(Json(flashcard)),
 		Share::Private => {
 			if user.user_id == flashcard.creator {
-				Ok(Json(FlashCard {
-					id: Some(flashcard.id),
-					share: flashcard.share,
-					content: serde_json::from_str(&flashcard.content).map_err(internal_error)?,
-				}))
+				Ok(Json(flashcard))
 			} else {
 				Err((StatusCode::NOT_FOUND, "Not found".to_string()))
 			}
@@ -81,13 +71,13 @@ async fn get_one(
 async fn update(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(id): Path<u32>,
-	Json(body): Json<FlashCard>,
+	Path(uid): Path<String>,
+	Json(body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let flashcard = flash_card::ActiveModel {
-		id: ActiveValue::Set(id),
+		uid: ActiveValue::Set(uid),
 		share: ActiveValue::Set(body.share.clone()),
-		content: ActiveValue::Set(serde_json::to_string(&body.content).map_err(internal_error)?),
+		content: ActiveValue::Set(body.content.clone()),
 		..Default::default()
 	};
 
@@ -102,10 +92,10 @@ async fn update(
 async fn del(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
-	Path(id): Path<u32>,
+	Path(uid): Path<String>,
 ) -> Result<StatusCode, (StatusCode, String)> {
 	entity::FlashCard::delete(flash_card::ActiveModel {
-		id: ActiveValue::Set(id),
+		uid: ActiveValue::Set(uid),
 		..Default::default()
 	})
 	.filter(flash_card::Column::Creator.eq(user.user_id))

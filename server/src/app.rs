@@ -45,6 +45,7 @@ pub async fn app(config: AppConfig) -> Router {
 
 	Router::new()
 		.nest("/api/flashcard", route::api::flashcard())
+		.nest("/api/deck", route::api::deck())
 		.nest("/auth", route::auth())
 		.route("/", get(|| async { "Hello World!".to_string() }))
 		.with_state(state)
