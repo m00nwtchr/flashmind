@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ts_rs :: TS)]
 #[sea_orm(table_name = "deck_cards")]
-#[ts(export)]
 pub struct Model {
 	#[sea_orm(
 		primary_key,

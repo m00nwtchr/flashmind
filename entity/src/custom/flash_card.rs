@@ -7,6 +7,7 @@ use ts_rs::TS;
 use crate::custom::lang::Language;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum FlashCardItem {
 	Title(String),
@@ -19,6 +20,7 @@ pub enum FlashCardItem {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum FlashCardSection {
 	Separator,
 	#[serde(untagged)]
@@ -33,6 +35,6 @@ pub enum FlashCardSection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, TS)]
-#[serde(transparent)]
 #[ts(export)]
+#[serde(transparent)]
 pub struct FlashCardContent(pub Vec<FlashCardSection>);
