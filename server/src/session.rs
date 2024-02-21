@@ -1,7 +1,4 @@
-use axum::extract::Request;
-use axum::http::StatusCode;
-use axum::middleware::Next;
-use axum::response::Response;
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use axum_session::SessionNullPool;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};

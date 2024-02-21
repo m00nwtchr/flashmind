@@ -2,20 +2,26 @@
 
 use super::sea_orm_active_enums::Share;
 use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+use crate::data::flash_card::FlashCardContent;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "flash_card")]
 pub struct Model {
-	#[sea_orm(primary_key)]
-	pub id: u32,
+	#[sea_orm(primary_key, auto_increment = false, column_type = "custom(\"uuid\")")]
+	#[serde(skip_deserializing)]
+	pub uid: String,
 	pub creator: u32,
 	pub share: Share,
 	#[sea_orm(column_type = "custom(\"LONGTEXT\")")]
-	pub content: String,
+	pub content: FlashCardContent,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+	#[sea_orm(has_many = "super::deck_cards::Entity")]
+	DeckCards,
 	#[sea_orm(
 		belongs_to = "super::user::Entity",
 		from = "Column::Creator",
@@ -26,9 +32,24 @@ pub enum Relation {
 	User,
 }
 
+impl Related<super::deck_cards::Entity> for Entity {
+	fn to() -> RelationDef {
+		Relation::DeckCards.def()
+	}
+}
+
 impl Related<super::user::Entity> for Entity {
 	fn to() -> RelationDef {
 		Relation::User.def()
+	}
+}
+
+impl Related<super::deck::Entity> for Entity {
+	fn to() -> RelationDef {
+		super::deck_cards::Relation::Deck.def()
+	}
+	fn via() -> Option<RelationDef> {
+		Some(super::deck_cards::Relation::FlashCard.def().rev())
 	}
 }
 
