@@ -47,14 +47,6 @@ async fn provider(
 	Ok((StatusCode::FOUND, [(LOCATION, authorize_url.to_string())]))
 }
 
-fn if_empty(str: String) -> Option<String> {
-	if str.is_empty() {
-		None
-	} else {
-		Some(str)
-	}
-}
-
 async fn provider_callback(
 	OIDCProvider(provider, client): OIDCProvider,
 	Query(query): Query<AuthRequest>,

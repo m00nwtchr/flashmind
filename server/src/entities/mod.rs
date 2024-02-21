@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod deck;
+pub mod deck_cards;
 pub mod flash_card;
 pub mod followed_decks;
 pub mod sea_orm_active_enums;
