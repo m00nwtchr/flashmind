@@ -24,9 +24,9 @@ async fn create(
 		share: Set(body.share),
 		content: Set(body.content.clone()),
 	})
-		.exec(&conn)
-		.await
-		.map_err(internal_error)?;
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?;
 
 	Ok((
 		StatusCode::CREATED,
@@ -94,10 +94,10 @@ async fn del(
 		uid: Set(uuid),
 		..Default::default()
 	})
-		.filter(flash_card::Column::Creator.eq(user.user_id))
-		.exec(&conn)
-		.await
-		.map_err(internal_error)?;
+	.filter(flash_card::Column::Creator.eq(user.user_id))
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?;
 	Ok(StatusCode::NO_CONTENT)
 }
 
