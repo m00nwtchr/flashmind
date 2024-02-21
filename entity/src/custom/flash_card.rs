@@ -1,11 +1,12 @@
-use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 
 use sea_orm::FromJsonQueryResult;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::custom::lang::Language;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum FlashCardItem {
 	Title(String),
@@ -17,7 +18,7 @@ pub enum FlashCardItem {
 	Example(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub enum FlashCardSection {
 	Separator,
 	#[serde(untagged)]
@@ -28,9 +29,10 @@ pub enum FlashCardSection {
 		back: FlashCardItem,
 	},
 	#[serde(untagged)]
-	Lang(FxHashMap<Language, FlashCardItem>),
+	Lang(HashMap<Language, FlashCardItem>),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, TS)]
 #[serde(transparent)]
+#[ts(export)]
 pub struct FlashCardContent(pub Vec<FlashCardSection>);

@@ -3,18 +3,16 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ts_rs :: TS)]
 #[sea_orm(table_name = "user")]
+#[ts(export)]
 pub struct Model {
 	#[sea_orm(primary_key)]
 	#[serde(skip_deserializing)]
 	pub id: u32,
 	pub sub: String,
-	#[sea_orm(column_type = "Text")]
 	pub provider: String,
-	#[sea_orm(column_type = "Text", nullable)]
 	pub display: Option<String>,
-	#[sea_orm(column_type = "Text", nullable)]
 	pub email: Option<String>,
 }
 

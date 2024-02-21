@@ -4,18 +4,21 @@ use super::sea_orm_active_enums::Share;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::custom::flash_card::FlashCardContent;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ts_rs :: TS)]
 #[sea_orm(table_name = "flash_card")]
+#[ts(export)]
 pub struct Model {
-	#[sea_orm(primary_key, auto_increment = false, column_type = "custom(\"uuid\")")]
+	#[sea_orm(
+		primary_key,
+		auto_increment = false,
+		column_type = "Binary(BlobSize::Blob(Some(16)))"
+	)]
 	#[serde(skip_deserializing)]
-	pub uid: String,
+	pub uid: uuid::Uuid,
 	pub creator: u32,
 	pub share: Share,
 	#[sea_orm(column_type = "custom(\"LONGTEXT\")")]
-	pub content: FlashCardContent,
+	pub content: super::custom::flash_card::FlashCardContent,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

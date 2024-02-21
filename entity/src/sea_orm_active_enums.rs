@@ -3,16 +3,40 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+	Debug,
+	Clone,
+	PartialEq,
+	Eq,
+	EnumIter,
+	DeriveActiveEnum,
+	Copy,
+	Serialize,
+	Deserialize,
+	ts_rs :: TS,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "kind")]
+#[ts(export)]
 pub enum Kind {
 	#[sea_orm(string_value = "Language")]
 	Language,
 	#[sea_orm(string_value = "Other")]
 	Other,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+	Debug,
+	Clone,
+	PartialEq,
+	Eq,
+	EnumIter,
+	DeriveActiveEnum,
+	Copy,
+	Serialize,
+	Deserialize,
+	ts_rs :: TS,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "share")]
+#[ts(export)]
 pub enum Share {
 	#[sea_orm(string_value = "Public")]
 	Public,

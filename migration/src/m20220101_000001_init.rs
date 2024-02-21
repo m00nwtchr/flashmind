@@ -23,7 +23,7 @@ impl MigrationTrait for Migration {
 							.primary_key(),
 					)
 					.col(ColumnDef::new(User::Sub).string_len(255).not_null())
-					.col(ColumnDef::new(User::Provider).string().null())
+					.col(ColumnDef::new(User::Provider).string().not_null())
 					.col(ColumnDef::new(User::Display).string().null())
 					.col(ColumnDef::new(User::Email).string().null())
 					.to_owned(),
@@ -48,6 +48,11 @@ impl MigrationTrait for Migration {
 					)
 					.col(ColumnDef::new(FlashCard::Content).json().not_null())
 					.index(Index::create().col(FlashCard::Creator))
+					.foreign_key(
+						ForeignKey::create()
+							.from(FlashCard::Table, FlashCard::Creator)
+							.to(User::Table, User::Id),
+					)
 					.to_owned(),
 			)
 			.await?;
@@ -71,6 +76,11 @@ impl MigrationTrait for Migration {
 							.not_null(),
 					)
 					.index(Index::create().col(Deck::Creator))
+					.foreign_key(
+						ForeignKey::create()
+							.from(Deck::Table, Deck::Creator)
+							.to(User::Table, User::Id),
+					)
 					.to_owned(),
 			)
 			.await?;
@@ -90,7 +100,7 @@ impl MigrationTrait for Migration {
 			.foreign_key(
 				ForeignKey::create()
 					.from(DeckCards::Table, DeckCards::Card)
-					.to(Deck::Table, FlashCard::Uid),
+					.to(FlashCard::Table, FlashCard::Uid),
 			);
 		if !sqlite {
 			table.index(

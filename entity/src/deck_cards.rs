@@ -3,15 +3,24 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ts_rs :: TS)]
 #[sea_orm(table_name = "deck_cards")]
+#[ts(export)]
 pub struct Model {
-	#[sea_orm(primary_key, auto_increment = false, column_type = "custom(\"uuid\")")]
+	#[sea_orm(
+		primary_key,
+		auto_increment = false,
+		column_type = "Binary(BlobSize::Blob(Some(16)))"
+	)]
 	#[serde(skip_deserializing)]
-	pub deck: String,
-	#[sea_orm(primary_key, auto_increment = false, column_type = "custom(\"uuid\")")]
+	pub deck: uuid::Uuid,
+	#[sea_orm(
+		primary_key,
+		auto_increment = false,
+		column_type = "Binary(BlobSize::Blob(Some(16)))"
+	)]
 	#[serde(skip_deserializing)]
-	pub card: String,
+	pub card: uuid::Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
