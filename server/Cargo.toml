@@ -12,12 +12,11 @@ axum = { version = "0.7", features = ["macros"] }
 axum_session = { version = "0.12", default-features = false }
 #tower-http = { version = "0.5", features = ["cors"] }
 openidconnect = "3.5"
+#utoipa = { version = "4.2", features = ["axum_extras", "uuid"] }
 
 tokio = { version = "1", features = ["rt"] }
 futures = "0.3"
 
-#mongodb = "2.8"
-#sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio", "mysql", "macros", "migrate"] }
 sea-orm = { workspace = true, features = ["sqlx-mysql", "runtime-tokio-rustls", "macros"] }
 
 anyhow = "1"

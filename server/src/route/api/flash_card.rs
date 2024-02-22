@@ -88,19 +88,26 @@ async fn update(
 }
 
 async fn del(
+async fn delete_card(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
 	Path(uuid): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-	FlashCard::delete(flash_card::ActiveModel {
+	if FlashCard::delete(flash_card::ActiveModel {
 		uid: Set(uuid),
 		..Default::default()
 	})
-	.filter(flash_card::Column::Creator.eq(user.user_id))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
-	Ok(StatusCode::NO_CONTENT)
+		.filter(flash_card::Column::Creator.eq(user.user_id))
+		.exec(&conn)
+		.await
+		.map_err(internal_error)?
+		.rows_affected
+		== 0
+	{
+		Ok(StatusCode::NOT_FOUND)
+	} else {
+		Ok(StatusCode::NO_CONTENT)
+	}
 }
 
 pub fn router() -> Router<AppState> {
@@ -109,6 +116,6 @@ pub fn router() -> Router<AppState> {
 		// .route("/", get(all))
 		.route("/:id", get(get_one))
 		.route("/:id", put(update))
-		.route("/:id", delete(del))
+		.route("/:id", delete(delete_card))
 		.route_layer(middleware::from_fn(session::auth))
 }
