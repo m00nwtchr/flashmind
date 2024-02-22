@@ -10,9 +10,9 @@ pub struct Model {
 	#[serde(skip_deserializing)]
 	pub user: u32,
 	#[sea_orm(
-	primary_key,
-	auto_increment = false,
-	column_type = "Binary(BlobSize::Blob(Some(16)))"
+		primary_key,
+		auto_increment = false,
+		column_type = "Binary(BlobSize::Blob(Some(16)))"
 	)]
 	#[serde(skip_deserializing)]
 	pub deck: uuid::Uuid,
@@ -21,19 +21,19 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
 	#[sea_orm(
-	belongs_to = "super::deck::Entity",
-	from = "Column::Deck",
-	to = "super::deck::Column::Uid",
-	on_update = "Restrict",
-	on_delete = "Restrict"
+		belongs_to = "super::deck::Entity",
+		from = "Column::Deck",
+		to = "super::deck::Column::Uid",
+		on_update = "Restrict",
+		on_delete = "Restrict"
 	)]
 	Deck,
 	#[sea_orm(
-	belongs_to = "super::user::Entity",
-	from = "Column::User",
-	to = "super::user::Column::Id",
-	on_update = "Restrict",
-	on_delete = "Restrict"
+		belongs_to = "super::user::Entity",
+		from = "Column::User",
+		to = "super::user::Column::Id",
+		on_update = "Restrict",
+		on_delete = "Restrict"
 	)]
 	User,
 }

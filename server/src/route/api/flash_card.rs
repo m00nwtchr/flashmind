@@ -87,7 +87,6 @@ async fn update(
 	Ok(StatusCode::NO_CONTENT)
 }
 
-async fn del(
 async fn delete_card(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
@@ -97,11 +96,11 @@ async fn delete_card(
 		uid: Set(uuid),
 		..Default::default()
 	})
-		.filter(flash_card::Column::Creator.eq(user.user_id))
-		.exec(&conn)
-		.await
-		.map_err(internal_error)?
-		.rows_affected
+	.filter(flash_card::Column::Creator.eq(user.user_id))
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?
+	.rows_affected
 		== 0
 	{
 		Ok(StatusCode::NOT_FOUND)
