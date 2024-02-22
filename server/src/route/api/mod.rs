@@ -4,8 +4,23 @@ use axum::Router;
 mod deck;
 mod flash_card;
 
-pub use deck::router as deck;
-pub use flash_card::router as flashcard;
+// #[utoipa::path(get, path = "/api/openapi.json",
+// responses((status = 200, description = "JSON file", body = ()))
+// )]
+// async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+// 	Json(ApiDoc::openapi())
+// }
+
+// #[derive(OpenApi)]
+// #[openapi(paths(
+// 	openapi,
+// 	flash_card::create,
+// 	flash_card::get_one,
+// 	flash_card::update,
+// 	flash_card::delete_card
+// ))]
+// pub struct ApiDoc;
+
 pub fn router() -> Router<AppState> {
 	Router::new()
 		// .route("/openapi.json", get(openapi))

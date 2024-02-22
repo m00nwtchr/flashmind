@@ -12,6 +12,10 @@ use uuid::Uuid;
 use crate::{app::AppState, internal_error, session, session::CurrentUser};
 use entity::{flash_card, prelude::*, sea_orm_active_enums::Share};
 
+// #[utoipa::path(post, path = "/api/flashcard", responses(
+// (status = CREATED, description = "Flash card created successfully", body = entity::flash_card::Model),
+// (status = INTERNAL_SERVER_ERROR, description = "Error while creating flash card", body = String)
+// ))]
 async fn create(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
@@ -43,6 +47,14 @@ async fn create(
 // 	Ok(todo!())
 // }
 //
+
+// #[utoipa::path(get, path = "/api/flashcard/{uuid}", responses(
+// (status = OK, description = "Flash card found successfully", body = entity::flash_card::Model),
+// (status = NOT_FOUND, description = "No such flash card", body = String),
+// (status = INTERNAL_SERVER_ERROR, description = "Error while getting flash card", body = String)
+// ), params(
+// ("uuid" = Uuid, Path, description = "UUID of flash card to get"),
+// ))]
 async fn get_one(
 	State(db): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
@@ -66,6 +78,13 @@ async fn get_one(
 	}
 }
 
+// #[utoipa::path(put, path = "/api/flashcard/{uuid}", responses(
+// (status = NO_CONTENT, description = "Flash card updated successfully", body = ()),
+// (status = NOT_FOUND, description = "No such flash card to update", body = ()),
+// (status = INTERNAL_SERVER_ERROR, description = "Error while updating flash card", body = ())
+// ), params(
+// ("uuid" = Uuid, Path, description = "UUID of flash card to update"),
+// ))]
 async fn update(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
@@ -87,7 +106,13 @@ async fn update(
 	Ok(StatusCode::NO_CONTENT)
 }
 
-async fn del(
+// #[utoipa::path(delete, path = "/api/flashcard/{uuid}", responses(
+// (status = NO_CONTENT, description = "Flash card deleted successfully", body = ()),
+// (status = NOT_FOUND, description = "No such flash card to delete", body = ()),
+// (status = INTERNAL_SERVER_ERROR, description = "Error while deleting flash card", body = ())
+// ), params(
+// ("uuid" = Uuid, Path, description = "UUID of flash card to delete"),
+// ))]
 async fn delete_card(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<CurrentUser>,
