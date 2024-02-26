@@ -41,9 +41,9 @@ impl Deref for OIDCProviders {
 
 #[async_trait]
 impl<S> FromRequestParts<S> for OIDCProvider
-	where
-		AppState: FromRef<S>,
-		S: Send + Sync,
+where
+	AppState: FromRef<S>,
+	S: Send + Sync,
 {
 	type Rejection = (StatusCode, String);
 
@@ -102,8 +102,8 @@ pub async fn get_oidc_providers(base_url: String) -> OIDCProviders {
 							IssuerUrl::new(issuer_url).ok()?,
 							async_http_client,
 						)
-							.await
-							.ok()?;
+						.await
+						.ok()?;
 
 						Some((
 							id.clone(),
@@ -120,7 +120,7 @@ pub async fn get_oidc_providers(base_url: String) -> OIDCProviders {
 									ClientId::new(client_id),
 									Some(ClientSecret::new(client_secret)),
 								)
-									.set_redirect_uri(RedirectUrl::new(redirect_url).ok()?),
+								.set_redirect_uri(RedirectUrl::new(redirect_url).ok()?),
 							},
 						))
 					} else {

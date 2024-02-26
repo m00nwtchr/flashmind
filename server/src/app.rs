@@ -1,9 +1,15 @@
 use std::{ops::Deref, sync::Arc};
 
-use axum::{extract::FromRef, routing::get, Router};
+use axum::{
+	extract::{FromRef, State},
+	http::StatusCode,
+	routing::get,
+	Json, Router,
+};
 use axum_session::{Key, SessionConfig, SessionLayer, SessionNullPool, SessionStore};
 use migration::MigratorTrait;
 use sea_orm::DatabaseConnection;
+use serde_json::json;
 
 use crate::{config::AppConfig, db::db, oidc, oidc::OIDCProviders, route};
 
@@ -53,5 +59,24 @@ pub async fn app(config: AppConfig) -> Router {
 		.nest("/auth", route::auth())
 		.route("/", get(|| async { "Hello, World!".to_string() }))
 		.with_state(state)
+		.route("/.well-known/assetlinks.json", get(asset_links))
+		.with_state(config)
 		.layer(SessionLayer::new(session_store))
+}
+
+async fn asset_links(
+	State(config): State<AppConfig>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+	if config.app_fingerprints.is_empty() {
+		return Err(StatusCode::NOT_FOUND);
+	}
+
+	Ok(Json(json!([{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": config.app_id,
+			"sha256_cert_fingerprints": config.app_fingerprints
+		}
+	}])))
 }

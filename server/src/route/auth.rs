@@ -112,10 +112,10 @@ async fn provider_callback(
 				email: Set(u.display.clone()),
 				..Default::default()
 			})
-				.exec(&db)
-				.await
-				.map_err(internal_error)?
-				.last_insert_id;
+			.exec(&db)
+			.await
+			.map_err(internal_error)?
+			.last_insert_id;
 
 			u
 		}
