@@ -22,17 +22,12 @@ use crate::{
 };
 use entity::{prelude::*, user};
 
-#[derive(Debug, Deserialize)]
-pub struct AuthRequest {
-	code: AuthorizationCode,
-	state: CsrfToken,
-}
-
 async fn provider(
-	OIDCProvider(_, client): OIDCProvider,
+	provider: OIDCProvider,
 	session: Session,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let (authorize_url, csrf_state, nonce) = client
+	let (authorize_url, csrf_state, nonce) = provider
+		.client
 		.authorize_url(
 			AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
 			CsrfToken::new_random,
@@ -47,8 +42,14 @@ async fn provider(
 	Ok((StatusCode::FOUND, [(LOCATION, authorize_url.to_string())]))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AuthRequest {
+	code: AuthorizationCode,
+	state: CsrfToken,
+}
+
 async fn provider_callback(
-	OIDCProvider(provider, client): OIDCProvider,
+	provider: OIDCProvider,
 	Query(query): Query<AuthRequest>,
 	session: Session,
 	State(db): State<DatabaseConnection>,
@@ -65,30 +66,26 @@ async fn provider_callback(
 	if !query.state.secret().eq(csrf_token.secret()) {
 		return Err((StatusCode::FORBIDDEN, "Forbidden".to_string()));
 	};
-	let token_response = client
+	let token_response = provider
+		.client
 		.exchange_code(query.code)
 		.request_async(async_http_client)
 		.await
 		.map_err(|err| match err {
-			RequestTokenError::ServerResponse(_) => (
-				StatusCode::BAD_REQUEST,
-				"Token endpoint returned error response".to_string(),
-			),
-			RequestTokenError::Request(_) => (
-				StatusCode::GATEWAY_TIMEOUT,
-				"Failed to contact token endpoint".to_string(),
-			),
+			RequestTokenError::ServerResponse(err) => {
+				(StatusCode::NOT_FOUND, format!("{}", err.error()))
+			}
 			_ => internal_error(err),
 		})?;
 	let id_token = token_response.id_token().unwrap();
 	let claims = id_token
-		.claims(&client.id_token_verifier(), &nonce)
+		.claims(&provider.client.id_token_verifier(), &nonce)
 		.unwrap();
 	let sub = claims.subject();
 
 	let res = User::find()
 		.filter(user::Column::Sub.eq(sub.as_str()))
-		.filter(user::Column::Provider.eq(&provider))
+		.filter(user::Column::Provider.eq(&provider.id))
 		.one(&db)
 		.await
 		.map_err(internal_error)?;
@@ -98,7 +95,7 @@ async fn provider_callback(
 			let mut u = CurrentUser {
 				user_id: 0,
 				subject_id: sub.to_string(),
-				provider,
+				provider: provider.id,
 				username: claims.preferred_username().map(|c| c.to_string()),
 				display: claims
 					.name()
@@ -115,10 +112,10 @@ async fn provider_callback(
 				email: Set(u.display.clone()),
 				..Default::default()
 			})
-			.exec(&db)
-			.await
-			.map_err(internal_error)?
-			.last_insert_id;
+				.exec(&db)
+				.await
+				.map_err(internal_error)?
+				.last_insert_id;
 
 			u
 		}
@@ -126,7 +123,7 @@ async fn provider_callback(
 			let user = CurrentUser {
 				user_id: model.id,
 				subject_id: model.sub,
-				provider,
+				provider: provider.id,
 				username: claims.preferred_username().map(|c| c.to_string()),
 				display: claims
 					.name()
@@ -158,11 +155,16 @@ async fn user(Extension(user): Extension<CurrentUser>) -> Json<CurrentUser> {
 	Json(user)
 }
 
+async fn providers(State(state): State<AppState>) -> Json<Vec<OIDCProvider>> {
+	Json(state.providers.values().cloned().collect())
+}
+
 pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/user", get(user))
+		.route("/logout", post(logout))
 		.route_layer(middleware::from_fn(session::auth))
+		.route("/oidc", get(providers))
 		.route("/oidc/:provider", get(provider))
 		.route("/oidc/:provider/callback", get(provider_callback))
-		.route("/logout", post(logout))
 }

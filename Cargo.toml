@@ -13,5 +13,9 @@ sea-orm = { version = "0.12" }
 migration = { path = "migration" }
 
 [profile.release]
+
+
+[profile.perf]
+inherits = "release"
 lto = "fat"
 codegen-units = 1
