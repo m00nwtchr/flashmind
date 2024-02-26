@@ -1,24 +1,30 @@
 version: "3.8"
 
 services:
-  mariadb:
+  flashmind-db:
     image: mariadb:latest
-    ports:
-      - "3306:3306"
     volumes:
-      - mariadb-data:/var/lib/mysql
+      - flashmind-db-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: qwerty
+      MARIADB_DATABASE: flashmind
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    ports:
-      - 8000:80
-    environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOST=mariadb
-    depends_on:
-      - mariadb
+  flashmind:
+    # build: .
+    image: local/flashmind
+    networks:
+      - web
+      - default
+    env_file: .env
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.flashmind.entrypoints: web-secure
+      traefik.http.routers.flashmind.rule: Host(`flashmind.m00nlit.dev`)
 
 volumes:
-  mariadb-data:
+  flashmind-db-data:
+
+networks:
+  default:
+  web:
+    external: true
