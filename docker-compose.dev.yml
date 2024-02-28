@@ -19,7 +19,7 @@ services:
       - PMA_ARBITRARY=1
       - PMA_HOST=mariadb
     depends_on:
-      - mariadb
+      - flashmind-db
 
 volumes:
   flashmind-db-data:

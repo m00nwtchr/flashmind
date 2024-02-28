@@ -15,11 +15,15 @@ services:
     networks:
       - web
       - default
-    env_file: .env
+    env_file: .prod.env
     labels:
       traefik.enable: "true"
       traefik.http.routers.flashmind.entrypoints: web-secure
       traefik.http.routers.flashmind.rule: Host(`flashmind.m00nlit.dev`)
+      traefik.http.routers.flashmind.middlewares: flashmind-cors
+      traefik.http.middlewares.flashmind-cors.headers.accessControlAllowMethods: "*"
+      traefik.http.middlewares.flashmind-cors.headers.accessControlAllowHeaders: "*"
+      traefik.http.middlewares.flashmind-cors.headers.accessControlAllowOriginList: "http://localhost:1420,https://flashmind.m00nlit.dev"
 
 volumes:
   flashmind-db-data:

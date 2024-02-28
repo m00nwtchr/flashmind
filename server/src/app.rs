@@ -37,7 +37,7 @@ impl FromRef<AppState> for DatabaseConnection {
 }
 
 pub async fn app(config: AppConfig) -> Router {
-	let providers = oidc::get_oidc_providers(format!("{}/auth/oidc", config.public_url)).await;
+	let providers = oidc::get_oidc_providers(format!("{}/login", config.public_url)).await;
 	let db = db(&config).await;
 
 	migration::Migrator::up(&db, None)

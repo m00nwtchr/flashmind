@@ -98,7 +98,7 @@ pub async fn get_oidc_providers(base_url: String) -> OIDCProviders {
 				async move {
 					if !client_id.is_empty() && !client_secret.is_empty() && !issuer_url.is_empty()
 					{
-						let redirect_url = format!("{base_url}/{id}/callback");
+						let redirect_url = format!("{base_url}/{id}");
 
 						let url = IssuerUrl::new(issuer_url).ok()?;
 						let provider_metadata =

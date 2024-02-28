@@ -15,7 +15,7 @@ migration = { path = "migration" }
 [profile.release]
 
 
-[profile.perf]
+[profile.release-lto]
 inherits = "release"
 lto = "fat"
 codegen-units = 1

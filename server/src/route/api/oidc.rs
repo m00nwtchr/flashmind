@@ -1,16 +1,10 @@
-use axum::{
-	extract::{Query, State},
-	http::{header::LOCATION, StatusCode},
-	response::IntoResponse,
-	routing::{get, post},
-	Json, Router,
-};
+use axum::{extract::{Query, State}, http::{header::LOCATION, StatusCode}, response::IntoResponse, routing::{get, post}, Json, Router, debug_handler};
 use openidconnect::{
 	reqwest::async_http_client, AuthorizationCode, Nonce, PkceCodeVerifier, RequestTokenError,
 	TokenResponse,
 };
 use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
 	app::AppState,
@@ -20,7 +14,7 @@ use crate::{
 };
 use entity::{prelude::*, user};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AuthRequest {
 	code: AuthorizationCode,
 	// state: CsrfToken,
@@ -29,19 +23,19 @@ pub struct AuthRequest {
 
 async fn exchange_code(
 	provider: OIDCProvider,
-	Query(query): Query<AuthRequest>,
 	State(db): State<DatabaseConnection>,
 	session: Session,
+	Json(req): Json<AuthRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let token_response = provider
 		.client
-		.exchange_code(query.code)
-		.set_pkce_verifier(query.code_verifier)
+		.exchange_code(req.code)
+		.set_pkce_verifier(req.code_verifier)
 		.request_async(async_http_client)
 		.await
 		.map_err(|err| match err {
 			RequestTokenError::ServerResponse(err) => {
-				(StatusCode::NOT_FOUND, format!("{}", err.error()))
+				(StatusCode::BAD_REQUEST, format!("{}", err.error()))
 			}
 			_ => internal_error(err),
 		})?;
@@ -50,7 +44,7 @@ async fn exchange_code(
 	let claims = id_token
 		.claims(
 			&provider.client.id_token_verifier(),
-			|nonce: Option<&Nonce>| Ok(()),
+			|_nonce: Option<&Nonce>| Ok(()),
 		)
 		.unwrap();
 	let sub = claims.subject();
@@ -115,7 +109,7 @@ async fn exchange_code(
 	};
 
 	session.set(CURRENT_USER, user);
-	Ok((StatusCode::SEE_OTHER, [(LOCATION, "/")]))
+	Ok(StatusCode::NO_CONTENT)
 }
 
 async fn providers(State(state): State<AppState>) -> Json<Vec<OIDCProvider>> {
