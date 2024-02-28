@@ -56,7 +56,6 @@ pub async fn app(config: AppConfig) -> Router {
 
 	Router::new()
 		.nest("/api", route::api())
-		.nest("/auth", route::auth())
 		.route("/", get(|| async { "Hello, World!".to_string() }))
 		.with_state(state)
 		.route("/.well-known/assetlinks.json", get(asset_links))

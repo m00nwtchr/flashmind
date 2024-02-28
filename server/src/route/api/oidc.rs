@@ -1,14 +1,13 @@
 use axum::{
 	extract::{Query, State},
 	http::{header::LOCATION, StatusCode},
-	middleware,
 	response::IntoResponse,
 	routing::{get, post},
-	Extension, Json, Router,
+	Json, Router,
 };
 use openidconnect::{
-	core::CoreResponseType, reqwest::async_http_client, AuthenticationFlow, AuthorizationCode,
-	CsrfToken, Nonce, RequestTokenError, Scope, TokenResponse,
+	reqwest::async_http_client, AuthorizationCode, Nonce, PkceCodeVerifier, RequestTokenError,
+	TokenResponse,
 };
 use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::Deserialize;
@@ -17,58 +16,27 @@ use crate::{
 	app::AppState,
 	internal_error,
 	oidc::OIDCProvider,
-	session,
-	session::{CurrentUser, Session, CURRENT_USER, OIDC_CSRF_TOKEN, OIDC_NONCE},
+	session::{CurrentUser, Session, CURRENT_USER},
 };
 use entity::{prelude::*, user};
-
-async fn provider(
-	provider: OIDCProvider,
-	session: Session,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let (authorize_url, csrf_state, nonce) = provider
-		.client
-		.authorize_url(
-			AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
-			CsrfToken::new_random,
-			Nonce::new_random,
-		)
-		.add_scope(Scope::new("email".to_string()))
-		.add_scope(Scope::new("profile".to_string()))
-		.url();
-	session.set(OIDC_CSRF_TOKEN, csrf_state);
-	session.set(OIDC_NONCE, nonce);
-
-	Ok((StatusCode::FOUND, [(LOCATION, authorize_url.to_string())]))
-}
 
 #[derive(Debug, Deserialize)]
 pub struct AuthRequest {
 	code: AuthorizationCode,
-	state: CsrfToken,
+	// state: CsrfToken,
+	code_verifier: PkceCodeVerifier,
 }
 
-async fn provider_callback(
+async fn exchange_code(
 	provider: OIDCProvider,
 	Query(query): Query<AuthRequest>,
-	session: Session,
 	State(db): State<DatabaseConnection>,
+	session: Session,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-	let mis_st = || {
-		(
-			StatusCode::BAD_REQUEST,
-			"Missing state in session".to_string(),
-		)
-	};
-	let csrf_token: CsrfToken = session.get(OIDC_CSRF_TOKEN).ok_or_else(mis_st)?;
-	let nonce: Nonce = session.get(OIDC_NONCE).ok_or_else(mis_st)?;
-
-	if !query.state.secret().eq(csrf_token.secret()) {
-		return Err((StatusCode::FORBIDDEN, "Forbidden".to_string()));
-	};
 	let token_response = provider
 		.client
 		.exchange_code(query.code)
+		.set_pkce_verifier(query.code_verifier)
 		.request_async(async_http_client)
 		.await
 		.map_err(|err| match err {
@@ -77,9 +45,13 @@ async fn provider_callback(
 			}
 			_ => internal_error(err),
 		})?;
+
 	let id_token = token_response.id_token().unwrap();
 	let claims = id_token
-		.claims(&provider.client.id_token_verifier(), &nonce)
+		.claims(
+			&provider.client.id_token_verifier(),
+			|nonce: Option<&Nonce>| Ok(()),
+		)
 		.unwrap();
 	let sub = claims.subject();
 
@@ -146,25 +118,13 @@ async fn provider_callback(
 	Ok((StatusCode::SEE_OTHER, [(LOCATION, "/")]))
 }
 
-async fn logout(session: Session) -> Result<impl IntoResponse, (StatusCode, String)> {
-	session.destroy();
-	Ok((StatusCode::SEE_OTHER, [(LOCATION, "/".to_string())]))
-}
-
-async fn user(Extension(user): Extension<CurrentUser>) -> Json<CurrentUser> {
-	Json(user)
-}
-
 async fn providers(State(state): State<AppState>) -> Json<Vec<OIDCProvider>> {
 	Json(state.providers.values().cloned().collect())
 }
 
 pub fn router() -> Router<AppState> {
 	Router::new()
-		.route("/user", get(user))
-		.route("/logout", post(logout))
-		.route_layer(middleware::from_fn(session::auth))
-		.route("/oidc", get(providers))
-		.route("/oidc/:provider", get(provider))
-		.route("/oidc/:provider/callback", get(provider_callback))
+		.route("/", get(providers))
+		// .route("/:provider", get(provider))
+		.route("/:provider", post(exchange_code))
 }

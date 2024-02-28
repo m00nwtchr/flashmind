@@ -5,9 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use entity::user;
 
-pub const OIDC_CSRF_TOKEN: &str = "oidc_csrf_token";
-pub const OIDC_NONCE: &str = "oidc_nonce";
-
 pub const CURRENT_USER: &str = "current_user";
 
 pub type Session = axum_session::Session<SessionNullPool>;

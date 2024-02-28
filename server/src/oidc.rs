@@ -21,6 +21,8 @@ use crate::app::AppState;
 pub struct OIDCProvider {
 	pub id: String,
 	pub name: Option<String>,
+	pub client_id: String,
+	pub url: IssuerUrl,
 	pub icon_url: Option<String>,
 	#[serde(skip)]
 	pub client: CoreClient,
@@ -98,18 +100,19 @@ pub async fn get_oidc_providers(base_url: String) -> OIDCProviders {
 					{
 						let redirect_url = format!("{base_url}/{id}/callback");
 
-						let provider_metadata = CoreProviderMetadata::discover_async(
-							IssuerUrl::new(issuer_url).ok()?,
-							async_http_client,
-						)
-						.await
-						.ok()?;
+						let url = IssuerUrl::new(issuer_url).ok()?;
+						let provider_metadata =
+							CoreProviderMetadata::discover_async(url.clone(), async_http_client)
+								.await
+								.ok()?;
 
 						Some((
 							id.clone(),
 							OIDCProvider {
 								id: id.clone(),
 								name: if name.is_empty() { None } else { Some(name) },
+								client_id: client_id.clone(),
+								url,
 								icon_url: if icon_url.is_empty() {
 									None
 								} else {
