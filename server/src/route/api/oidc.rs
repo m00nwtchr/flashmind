@@ -108,8 +108,8 @@ async fn exchange_code(
 		}
 	};
 
-	session.set(CURRENT_USER, user);
-	Ok(StatusCode::NO_CONTENT)
+	session.set(CURRENT_USER, user.clone());
+	Ok((StatusCode::OK, Json(user)))
 }
 
 async fn providers(State(state): State<AppState>) -> Json<Vec<OIDCProvider>> {
