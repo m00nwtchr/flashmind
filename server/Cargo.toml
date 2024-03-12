@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+mock-user = []
+
 [dependencies]
 migration.workspace = true
 entity = { path = "../entity" }

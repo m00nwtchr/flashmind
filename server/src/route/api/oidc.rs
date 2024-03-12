@@ -1,16 +1,22 @@
-use axum::{extract::{Query, State}, http::{header::LOCATION, StatusCode}, response::IntoResponse, routing::{get, post}, Json, Router, debug_handler};
+use axum::{
+	extract::State,
+	http::StatusCode,
+	response::IntoResponse,
+	routing::{get, post},
+	Json, Router,
+};
 use openidconnect::{
 	reqwest::async_http_client, AuthorizationCode, Nonce, PkceCodeVerifier, RequestTokenError,
 	TokenResponse,
 };
-use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter};
 use serde::{Deserialize, Serialize};
 
 use crate::{
 	app::AppState,
 	internal_error,
 	oidc::OIDCProvider,
-	session::{CurrentUser, Session, CURRENT_USER},
+	session::{Session, CURRENT_USER},
 };
 use entity::{prelude::*, user};
 
@@ -58,11 +64,11 @@ async fn exchange_code(
 
 	let user = match res {
 		None => {
-			let mut u = CurrentUser {
-				user_id: 0,
-				subject_id: sub.to_string(),
+			let mut user = user::Model {
+				id: 0,
+				sub: sub.to_string(),
 				provider: provider.id,
-				username: claims.preferred_username().map(|c| c.to_string()),
+				// 	username: claims.preferred_username().map(|c| c.to_string()),
 				display: claims
 					.name()
 					.and_then(|c| c.get(None))
@@ -71,40 +77,29 @@ async fn exchange_code(
 			};
 
 			// Create new user
-			u.user_id = User::insert(user::ActiveModel {
-				sub: Set(sub.to_string()),
-				provider: Set(u.provider.clone()),
-				display: Set(u.display.clone()),
-				email: Set(u.display.clone()),
-				..Default::default()
-			})
-			.exec(&db)
-			.await
-			.map_err(internal_error)?
-			.last_insert_id;
+			user.id = User::insert(user.clone().into_active_model())
+				.exec(&db)
+				.await
+				.map_err(internal_error)?
+				.last_insert_id;
 
-			u
+			user
 		}
-		Some(model) => {
-			let user = CurrentUser {
-				user_id: model.id,
-				subject_id: model.sub,
-				provider: provider.id,
-				username: claims.preferred_username().map(|c| c.to_string()),
-				display: claims
-					.name()
-					.and_then(|c| c.get(None))
-					.map(|c| c.to_string()),
-				email: claims.email().map(|c| c.to_string()),
-			};
+		Some(mut model) => {
+			// model.username = claims.preferred_username().map(|c| c.to_string());
+			model.display = claims
+				.name()
+				.and_then(|c| c.get(None))
+				.map(|c| c.to_string());
+			model.email = claims.email().map(|c| c.to_string());
 
 			// TODO: Consider updating user data on subsequent login
-			// entity::User::update(user.update_model(model.into_active_model()))
+			// User::update(model.clone().into_active_model())
 			// 	.exec(&db)
 			// 	.await
 			// 	.map_err(internal_error)?;
 
-			user
+			model
 		}
 	};
 

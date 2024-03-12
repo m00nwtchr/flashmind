@@ -16,7 +16,7 @@ use serde::Serialize;
 
 use crate::app::AppState;
 
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OIDCProvider {
 	pub id: String,
@@ -28,7 +28,7 @@ pub struct OIDCProvider {
 	pub client: CoreClient,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OIDCProviders(FxHashMap<String, OIDCProvider>);
 
 impl Deref for OIDCProviders {

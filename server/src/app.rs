@@ -48,7 +48,8 @@ pub async fn app(config: AppConfig) -> Router {
 
 	let session_config = SessionConfig::default()
 		.with_key(Key::generate())
-		.with_secure(true);
+		.with_secure(true)
+		.with_ip_and_user_agent(false);
 
 	let session_store = SessionStore::<SessionNullPool>::new(None, session_config)
 		.await

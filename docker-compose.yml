@@ -19,11 +19,23 @@ services:
     labels:
       traefik.enable: "true"
       traefik.http.routers.flashmind.entrypoints: web-secure
-      traefik.http.routers.flashmind.rule: Host(`flashmind.m00nlit.dev`)
-      traefik.http.routers.flashmind.middlewares: flashmind-cors
+      traefik.http.routers.flashmind.rule: Host(`flashmind.m00nlit.dev`) && PathPrefix(`/api`)
+      # traefik.http.routers.flashmind.middlewares: flashmind-cors
+
       traefik.http.middlewares.flashmind-cors.headers.accessControlAllowMethods: "*"
       traefik.http.middlewares.flashmind-cors.headers.accessControlAllowHeaders: "*"
       traefik.http.middlewares.flashmind-cors.headers.accessControlAllowOriginList: "http://localhost:1420,https://flashmind.m00nlit.dev"
+      traefik.http.middlewares.flashmind-cors.headers.accessControlAllowCredentials: "true"
+
+  flashmind-front:
+    image: local/flashmind-front
+    networks:
+      - web
+      - default
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.flashmind-front.entrypoints: web-secure
+      traefik.http.routers.flashmind-front.rule: Host(`flashmind.m00nlit.dev`)
 
 volumes:
   flashmind-db-data:

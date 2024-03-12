@@ -6,8 +6,6 @@ mod deck;
 mod flash_card;
 mod oidc;
 
-pub use deck::router as deck;
-pub use flash_card::router as flashcard;
 pub fn router() -> Router<AppState> {
 	Router::new()
 		// .route("/openapi.json", get(openapi))

@@ -9,16 +9,16 @@ use axum::{
 use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
-use crate::{app::AppState, internal_error, session, session::CurrentUser};
-use entity::{flash_card, prelude::*, sea_orm_active_enums::Share};
+use crate::{app::AppState, internal_error, session};
+use entity::{flash_card, prelude::*, sea_orm_active_enums::Share, user};
 
 async fn create(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Json(mut body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	body.uid = Uuid::new_v4();
-	body.creator = user.user_id;
+	body.creator = user.id;
 
 	FlashCard::insert(flash_card::ActiveModel {
 		uid: Set(body.uid),
@@ -45,7 +45,7 @@ async fn create(
 //
 async fn get_one(
 	State(db): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uuid): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let flashcard = FlashCard::find_by_id(uuid)
@@ -57,7 +57,7 @@ async fn get_one(
 	match flashcard.share {
 		Share::Public => Ok(Json(flashcard)),
 		Share::Private => {
-			if user.user_id == flashcard.creator {
+			if user.id == flashcard.creator {
 				Ok(Json(flashcard))
 			} else {
 				Err((StatusCode::NOT_FOUND, "Not found".to_string()))
@@ -68,7 +68,7 @@ async fn get_one(
 
 async fn update(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uuid): Path<Uuid>,
 	Json(body): Json<flash_card::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
@@ -80,7 +80,7 @@ async fn update(
 	};
 
 	FlashCard::update(flashcard)
-		.filter(flash_card::Column::Creator.eq(user.user_id))
+		.filter(flash_card::Column::Creator.eq(user.id))
 		.exec(&conn)
 		.await
 		.map_err(internal_error)?;
@@ -89,14 +89,14 @@ async fn update(
 
 async fn delete_card(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uuid): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
 	if FlashCard::delete(flash_card::ActiveModel {
 		uid: Set(uuid),
 		..Default::default()
 	})
-	.filter(flash_card::Column::Creator.eq(user.user_id))
+	.filter(flash_card::Column::Creator.eq(user.id))
 	.exec(&conn)
 	.await
 	.map_err(internal_error)?

@@ -11,16 +11,16 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::{app::AppState, internal_error, session, session::CurrentUser};
-use entity::{deck, deck_cards, flash_card, prelude::*, sea_orm_active_enums::Share};
+use crate::{app::AppState, internal_error, session};
+use entity::{deck, deck_cards, flash_card, prelude::*, sea_orm_active_enums::Share, user};
 
 async fn create(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Json(mut deck): Json<deck::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	deck.uid = Uuid::new_v4();
-	deck.creator = user.user_id;
+	deck.creator = user.id;
 
 	Deck::insert(deck::ActiveModel {
 		uid: Set(deck.uid),
@@ -48,14 +48,14 @@ async fn create(
 //
 async fn get_one(
 	State(db): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let deck = Deck::find_by_id(id)
 		.filter(
 			deck::Column::Share.eq(Share::Public).or(deck::Column::Share
 				.eq(Share::Private)
-				.and(deck::Column::Creator.eq(user.user_id))),
+				.and(deck::Column::Creator.eq(user.id))),
 		)
 		.one(&db)
 		.await
@@ -65,7 +65,7 @@ async fn get_one(
 	match deck.share {
 		Share::Public => Ok(Json(deck)),
 		Share::Private => {
-			if user.user_id == deck.creator {
+			if user.id == deck.creator {
 				Ok(Json(deck))
 			} else {
 				Err((StatusCode::NOT_FOUND, "Not found".to_string()))
@@ -76,12 +76,12 @@ async fn get_one(
 
 async fn update(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uid): Path<Uuid>,
 	Json(body): Json<deck::Model>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let deck: deck::ActiveModel = Deck::find_by_id(uid)
-		.filter(deck::Column::Creator.eq(user.user_id))
+		.filter(deck::Column::Creator.eq(user.id))
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
@@ -103,14 +103,14 @@ async fn update(
 
 async fn get_cards(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uid): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let Some(deck) = Deck::find_by_id(uid)
 		.filter(
 			deck::Column::Share.eq(Share::Public).or(deck::Column::Share
 				.eq(Share::Private)
-				.and(deck::Column::Creator.eq(user.user_id))),
+				.and(deck::Column::Creator.eq(user.id))),
 		)
 		.one(&conn)
 		.await
@@ -126,7 +126,7 @@ async fn get_cards(
 				.eq(Share::Public)
 				.or(flash_card::Column::Share
 					.eq(Share::Private)
-					.and(flash_card::Column::Creator.eq(user.user_id))),
+					.and(flash_card::Column::Creator.eq(user.id))),
 		)
 		.all(&conn)
 		.await
@@ -136,14 +136,14 @@ async fn get_cards(
 
 async fn delete_deck(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uid): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
 	Deck::delete(deck::ActiveModel {
 		uid: Set(uid),
 		..Default::default()
 	})
-	.filter(flash_card::Column::Creator.eq(user.user_id))
+	.filter(flash_card::Column::Creator.eq(user.id))
 	.exec(&conn)
 	.await
 	.map_err(internal_error)?;
@@ -152,12 +152,12 @@ async fn delete_deck(
 
 async fn update_cards(
 	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<CurrentUser>,
+	Extension(user): Extension<user::Model>,
 	Path(uid): Path<Uuid>,
 	Json(ids): Json<Vec<Uuid>>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
 	let Some(deck) = Deck::find_by_id(uid)
-		.filter(deck::Column::Creator.eq(user.user_id))
+		.filter(deck::Column::Creator.eq(user.id))
 		.one(&conn)
 		.await
 		.map_err(internal_error)?
