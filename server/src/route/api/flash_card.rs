@@ -37,12 +37,19 @@ async fn create(
 	))
 }
 
-// async fn all(
-// 	State(db): State<DatabaseConnection>,
-// ) -> Result<impl IntoResponse, (StatusCode, String)> {
-// 	Ok(todo!())
-// }
-//
+async fn all(
+	State(db): State<DatabaseConnection>,
+	Extension(user): Extension<user::Model>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+	let flashcards = FlashCard::find()
+		.filter(flash_card::Column::Creator.eq(user.id))
+		.all(&db)
+		.await
+		.map_err(internal_error)?;
+
+	Ok(Json(flashcards))
+}
+
 async fn get_one(
 	State(db): State<DatabaseConnection>,
 	Extension(user): Extension<user::Model>,
@@ -112,7 +119,7 @@ async fn delete_card(
 pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/", post(create))
-		// .route("/", get(all))
+		.route("/", get(all))
 		.route("/:id", get(get_one))
 		.route("/:id", put(update))
 		.route("/:id", delete(delete_card))

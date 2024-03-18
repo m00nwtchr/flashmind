@@ -13,6 +13,7 @@ pub enum FlashCardItem {
 	Title(String),
 	Pronunciation {
 		ipa: String,
+		#[serde(skip_serializing_if = "Option::is_none")]
 		audio_url: Option<String>,
 	},
 	Image(String),
@@ -20,16 +21,17 @@ pub enum FlashCardItem {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(tag = "type", content = "content")]
 pub enum FlashCardSection {
 	Separator,
-	#[serde(untagged)]
+	// #[serde(untagged)]
 	Item(FlashCardItem),
-	#[serde(untagged)]
+	// #[serde(untagged)]
 	FrontBack {
 		front: FlashCardItem,
 		back: FlashCardItem,
 	},
-	#[serde(untagged)]
+	// #[serde(untagged)]
 	Lang(HashMap<Language, FlashCardItem>),
 }
 
