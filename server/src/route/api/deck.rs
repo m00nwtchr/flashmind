@@ -3,12 +3,13 @@ use axum::{
 	http::{header::LOCATION, StatusCode},
 	middleware,
 	response::IntoResponse,
-	routing::{delete, get, post, put},
+	routing::{delete, get, patch, post, put},
 	Extension, Json, Router,
 };
 use sea_orm::{
 	ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{app::AppState, internal_error, session};
@@ -40,12 +41,19 @@ async fn create(
 	))
 }
 
-// async fn all(
-// 	State(db): State<DatabaseConnection>,
-// ) -> Result<impl IntoResponse, (StatusCode, String)> {
-// 	Ok(todo!())
-// }
-//
+async fn all(
+	State(db): State<DatabaseConnection>,
+	Extension(user): Extension<user::Model>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+	let decks = Deck::find()
+		.filter(deck::Column::Creator.eq(user.id))
+		.all(&db)
+		.await
+		.map_err(internal_error)?;
+
+	Ok(Json(decks))
+}
+
 async fn get_one(
 	State(db): State<DatabaseConnection>,
 	Extension(user): Extension<user::Model>,
@@ -101,6 +109,22 @@ async fn update(
 	Ok(StatusCode::NO_CONTENT)
 }
 
+async fn delete_deck(
+	State(conn): State<DatabaseConnection>,
+	Extension(user): Extension<user::Model>,
+	Path(uid): Path<Uuid>,
+) -> Result<StatusCode, (StatusCode, String)> {
+	Deck::delete(deck::ActiveModel {
+		uid: Set(uid),
+		..Default::default()
+	})
+	.filter(flash_card::Column::Creator.eq(user.id))
+	.exec(&conn)
+	.await
+	.map_err(internal_error)?;
+	Ok(StatusCode::NO_CONTENT)
+}
+
 async fn get_cards(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<user::Model>,
@@ -134,23 +158,7 @@ async fn get_cards(
 	Ok((StatusCode::OK, Json(cards)))
 }
 
-async fn delete_deck(
-	State(conn): State<DatabaseConnection>,
-	Extension(user): Extension<user::Model>,
-	Path(uid): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-	Deck::delete(deck::ActiveModel {
-		uid: Set(uid),
-		..Default::default()
-	})
-	.filter(flash_card::Column::Creator.eq(user.id))
-	.exec(&conn)
-	.await
-	.map_err(internal_error)?;
-	Ok(StatusCode::NO_CONTENT)
-}
-
-async fn update_cards(
+async fn add_cards(
 	State(conn): State<DatabaseConnection>,
 	Extension(user): Extension<user::Model>,
 	Path(uid): Path<Uuid>,
@@ -181,14 +189,73 @@ async fn update_cards(
 	Ok(StatusCode::NO_CONTENT)
 }
 
+#[derive(Deserialize)]
+pub struct UpdatePatch<T> {
+	#[serde(default)]
+	add: Vec<T>,
+	#[serde(default)]
+	remove: Vec<T>,
+}
+
+async fn update_cards(
+	State(conn): State<DatabaseConnection>,
+	Extension(user): Extension<user::Model>,
+	Path(uid): Path<Uuid>,
+	Json(ids): Json<UpdatePatch<Uuid>>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+	let Some(deck) = Deck::find_by_id(uid)
+		.filter(deck::Column::Creator.eq(user.id))
+		.one(&conn)
+		.await
+		.map_err(internal_error)?
+	else {
+		return Err((StatusCode::NOT_FOUND, "Not found".to_string()));
+	};
+
+	if !ids.remove.is_empty() {
+		DeckCards::delete_many()
+			.filter(deck_cards::Column::Card.is_in(ids.remove.clone()))
+			.exec(&conn)
+			.await
+			.map_err(internal_error)?;
+	}
+
+	if !ids.add.is_empty() {
+		let models = ids.add.into_iter().map(|id| deck_cards::ActiveModel {
+			card: Set(id),
+			deck: Set(deck.uid),
+		});
+
+		DeckCards::insert_many(models)
+			.exec(&conn)
+			.await
+			.map_err(internal_error)?;
+	}
+
+	let cards = deck
+		.find_related(FlashCard)
+		.filter(
+			flash_card::Column::Share
+				.eq(Share::Public)
+				.or(flash_card::Column::Share
+					.eq(Share::Private)
+					.and(flash_card::Column::Creator.eq(user.id))),
+		)
+		.all(&conn)
+		.await
+		.map_err(internal_error)?;
+	Ok((StatusCode::OK, Json(cards)))
+}
+
 pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/", post(create))
-		// .route("/", get(all))
+		.route("/", get(all))
 		.route("/:id", get(get_one))
 		.route("/:id", put(update))
 		.route("/:id", delete(delete_deck))
 		.route("/:id/cards", get(get_cards))
-		.route("/:id/cards", put(update_cards))
+		.route("/:id/cards", put(add_cards))
+		.route("/:id/cards", patch(update_cards))
 		.route_layer(middleware::from_fn(session::auth))
 }
